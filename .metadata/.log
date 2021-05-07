@@ -1,0 +1,56 @@
+!SESSION 2021-04-27 22:34:19.116 -----------------------------------------------
+eclipse.buildId=4.16.0.I20200604-0540
+java.version=16.0.1
+java.vendor=Oracle Corporation
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -product org.eclipse.epp.package.cpp.product -keyring /Users/lijiangmeng/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -product org.eclipse.epp.package.cpp.product -keyring /Users/lijiangmeng/.eclipse_keyring
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.713
+!MESSAGE System property http.proxyHost has been set to 127.0.0.1 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.714
+!MESSAGE System property http.proxyPort has been set to 4780 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.715
+!MESSAGE System property http.nonProxyHosts has been set to 192.168.0.0/16|*.192.168.0.0/16|10.0.0.0/8|*.10.0.0.0/8|172.16.0.0/12|*.172.16.0.0/12|127.0.0.1|localhost|*.localhost|local|*.local by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.715
+!MESSAGE System property https.proxyHost has been set to 127.0.0.1 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.716
+!MESSAGE System property https.proxyPort has been set to 4780 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.716
+!MESSAGE System property socksProxyHost has been set to 127.0.0.1 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 22:35:45.716
+!MESSAGE System property socksProxyPort has been set to 4781 by an external source. This value will be overwritten using the values from the preferences
+!SESSION 2021-04-27 23:16:12.741 -----------------------------------------------
+eclipse.buildId=4.16.0.I20200604-0540
+java.version=16.0.1
+java.vendor=Oracle Corporation
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -product org.eclipse.epp.package.cpp.product -keyring /Users/lijiangmeng/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -product org.eclipse.epp.package.cpp.product -keyring /Users/lijiangmeng/.eclipse_keyring
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.982
+!MESSAGE System property http.proxyHost has been set to 127.0.0.1 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.983
+!MESSAGE System property http.proxyPort has been set to 4780 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.984
+!MESSAGE System property http.nonProxyHosts has been set to 192.168.0.0/16|*.192.168.0.0/16|10.0.0.0/8|*.10.0.0.0/8|172.16.0.0/12|*.172.16.0.0/12|127.0.0.1|localhost|*.localhost|local|*.local by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.984
+!MESSAGE System property https.proxyHost has been set to 127.0.0.1 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.985
+!MESSAGE System property https.proxyPort has been set to 4780 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.985
+!MESSAGE System property socksProxyHost has been set to 127.0.0.1 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY org.eclipse.core.net 1 0 2021-04-27 23:16:39.985
+!MESSAGE System property socksProxyPort has been set to 4781 by an external source. This value will be overwritten using the values from the preferences
