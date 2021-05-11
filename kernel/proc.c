@@ -292,7 +292,7 @@ fork(void)
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
-
+  np -> mask = p -> mask;
   np->state = RUNNABLE;
 
   release(&np->lock);
@@ -692,4 +692,20 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int collectproc(void){
+    int size = 0;
+    struct proc p;
+    for(int i = 0;i<=NPROC-1;i++){
+        //may need to add the lock here
+        p = proc[i];
+        if(p.state==UNUSED||p.state==ZOMBIE){
+            continue;
+        }
+        else{
+            size = size + 1;
+        }
+    }
+    return size;
 }
