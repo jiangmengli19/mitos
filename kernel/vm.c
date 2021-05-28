@@ -5,6 +5,9 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "spinlock.h"
+#include "proc.h"
+
 
 /*
  * the kernel's page table.
@@ -26,7 +29,7 @@ kvminit()
 
   // uart registers
   kvmmap(UART0, UART0, PGSIZE, PTE_R | PTE_W);
-
+  //vmprint(kernel_pagetable,0);
   // virtio mmio disk interface
   kvmmap(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
 
@@ -46,6 +49,8 @@ kvminit()
   // the highest virtual address in the kernel.
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 }
+
+
 
 // Switch h/w page table register to the kernel's page table,
 // and enable paging.
@@ -132,7 +137,7 @@ kvmpa(uint64 va)
   pte_t *pte;
   uint64 pa;
   
-  pte = walk(kernel_pagetable, va, 0);
+  pte = walk(myproc()->kerpagetable, va, 0);
   if(pte == 0)
     panic("kvmpa");
   if((*pte & PTE_V) == 0)
@@ -193,6 +198,10 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     *pte = 0;
   }
 }
+
+
+
+
 
 // create an empty user page table.
 // returns 0 if out of memory.
@@ -289,6 +298,69 @@ freewalk(pagetable_t pagetable)
   kfree((void*)pagetable);
 }
 
+void freewalkkernel(pagetable_t pagetable){
+    //int freetableflag = 1;
+    for(int i = 0;i<512;i++){
+        pte_t pte = pagetable[i];
+        /*
+        if((pte&PTE_V)&&(pte&(PTE_R|PTE_W|PTE_X))==0){
+            uint64 child = PTE2PA(pte);
+            freewalkkernel((pagetable_t)child);
+            pagetable[i]=0;
+        }
+        else if(pte&PTE_V){
+            freetableflag = 0;
+        }
+         */
+        if(pte&PTE_V){
+            pagetable[i] = 0;
+            if((pte&(PTE_R|PTE_W|PTE_X))==0){
+                 uint64 child = PTE2PA(pte);
+                 freewalkkernel((pagetable_t)child);
+
+            }
+        }
+    }
+    /*
+    if(freetableflag){
+        kfree(pagetable);
+    }
+     */
+    kfree((void*) pagetable);
+}
+
+
+void vmprint(pagetable_t pagetable,uint64 j){
+    //for(int j = 0;j<=2;j++) {
+        int printflag = 0;
+        for (int i = 0; i < 512; i++) {
+            pte_t pte = pagetable[i];
+            if (pte & PTE_V) {
+                if(j == 0){
+                    if(!printflag){
+                        printf("page table %p\n",pagetable);
+                        printflag = 1;
+                    }
+                    printf("..%d: pte %p pa %p\n",i, pte, PTE2PA(pte));
+                    pagetable_t pagetable1 = (pagetable_t)PTE2PA(pte);
+                    vmprint(pagetable1,1);
+                }
+                if(j== 1){
+                    printf(".. ..%d: pte %p pa %p\n",i, pte, PTE2PA(pte));
+                    pagetable_t pagetable1 = (pagetable_t)PTE2PA(pte);
+                    vmprint(pagetable1,2);
+                }
+                if(j==2){
+                    printf(".. .. ..%d: pte %p pa %p\n",i, pte, PTE2PA(pte));
+                }
+
+            }
+        }
+    //}
+
+
+}
+
 // Free user memory pages,
 // then free page-table pages.
 void
@@ -335,6 +407,68 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   return -1;
 }
 
+int kvmcopy(pagetable_t old,pagetable_t new,uint64 sz){
+    pte_t *pte;
+    pte_t *pte1;
+
+    uint64 pa,i;
+    uint flags;
+    //char *mem;
+    for( i = 0; i<sz;i = i+PGSIZE){
+        if((pte = walk(old, i, 0)) == 0)
+            panic("kvmcopy: pte should exist");
+        if((pte1 = walk(new, i, 1)) == 0)
+            panic("kvmcopy: pte cannot allocate pages");
+        pa = PTE2PA(*pte);
+        flags = PTE_FLAGS(*pte)&(~PTE_U);
+        *pte1 = PA2PTE(pa);
+        *pte1 = (*pte1)|flags;
+
+    }
+    return 0;
+
+}
+
+int kvm2copy(pagetable_t old, pagetable_t new,uint64 oldsz, uint64 newsz ){
+    pte_t *pte;
+    pte_t *pte1;
+
+    uint64 pa,i;
+    uint flags;
+    uint64 realoldsz = PGROUNDDOWN(oldsz);
+    //uint64 realoldsz = PGROUNDUP(oldsz);
+    //char *mem;
+    for( i = realoldsz; i<newsz;i = i+PGSIZE){
+        if((pte = walk(old, i, 0)) == 0)
+            panic("kvmcopy: pte should exist");
+        if((pte1 = walk(new, i, 1)) == 0)
+            panic("kvmcopy: pte cannot allocate pages");
+        pa = PTE2PA(*pte);
+        flags = (PTE_FLAGS(*pte))&(~PTE_U);
+        *pte1 = PA2PTE(pa);
+        *pte1 = (*pte1)|flags;
+
+    }
+    return 0;
+}
+/*
+int kvmshrink(pagetable_t old, uint64 oldsz, uint64 newsz){
+    pte_t *pte;
+
+
+    uint64 pa,i;
+    uint flags;
+    uint64 realoldsz = PGROUNDDOWN(oldsz);
+    uint64 realnewsz = PGROUNDUP(newsz);
+    for(i = realnewsz;i<realoldsz;i=i+PGSIZE){
+        if((pte = walk(old,i,0))==0)
+            panic("kvmcopy: pte should exist");
+        pa = PTE2PA(*pte);
+        kfree((void *)pa);
+
+    }
+}
+*/
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
 void
@@ -379,6 +513,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 int
 copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 {
+/*
   uint64 n, va0, pa0;
 
   while(len > 0){
@@ -396,6 +531,11 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
     srcva = va0 + PGSIZE;
   }
   return 0;
+*/
+
+    return copyin_new(pagetable,dst,srcva,len);
+
+
 }
 
 // Copy a null-terminated string from user to kernel.
@@ -405,6 +545,7 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 int
 copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 {
+/*
   uint64 n, va0, pa0;
   int got_null = 0;
 
@@ -439,4 +580,29 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+*/
+
+
+    return copyinstr_new(pagetable,dst,srcva,max);
+
 }
+/*
+void kvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int dofree){
+    uint64 a;
+    pte_t *pte;
+    if((va % PGSIZE) != 0)
+        panic("kvmunmap: not aligned");
+    for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+        if((pte = walk(pagetable, a, 0)) == 0)
+            panic("uvmunmap: walk");
+        if((*pte & PTE_V) == 0)
+            panic("uvmunmap: not mapped");
+        if(PTE_FLAGS(*pte) == PTE_V)
+            panic("uvmunmap: not a leaf");
+        if(do_free){
+            *pte = 0;
+        }
+        freewalk(pagetable);
+    }
+}
+*/

@@ -2513,6 +2513,7 @@ execout(char *s)
       // progress.
       for(int i = 0; i < avail; i++)
         sbrk(-4096);
+      //printf("come to the sbrk in execout\n");
       
       close(1);
       char *args[] = { "echo", "x", 0 };
