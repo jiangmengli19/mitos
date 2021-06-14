@@ -22,6 +22,7 @@ int
 main(int argc, char *argv[])
 {
   test0();
+  //printf("we come to the second test\n");
   test1();
   test2();
   exit(0);
@@ -65,6 +66,8 @@ void __attribute__ ((noinline)) foo(int i, int *j) {
     write(2, ".", 1);
   }
   *j += 1;
+  //printf("i is %d\n",i);
+  //printf("j is %d\n",*j);
 }
 
 //
@@ -89,6 +92,8 @@ test1()
     if(count >= 10)
       break;
     foo(i, &j);
+    //printf("i is %d\n",i);
+    //printf("j is %d\n",j);
   }
   if(count < 10){
     printf("\ntest1 failed: too few calls to the handler\n");
@@ -100,6 +105,8 @@ test1()
     // occurred; another is that that registers may not be
     // restored correctly, causing i or j or the address ofj
     // to get an incorrect value.
+    //printf("i is %d\n",i);
+    //printf("j is %d\n",j);
     printf("\ntest1 failed: foo() executed fewer times than it was called\n");
   } else {
     printf("test1 passed\n");

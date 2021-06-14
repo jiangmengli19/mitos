@@ -92,8 +92,50 @@ struct proc {
   void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
-  int pid;                     // Process ID
+  int pid;
+  // Process ID
+  int alarmticks;
 
+  uint64 handler;
+  uint64 numhandler;
+
+  uint64 a0store;
+  uint64 epcstore;
+  uint64 a1store;
+  uint64 a2store;
+  uint64 a3store;
+  uint64 a4store;
+  uint64 a5store;
+  uint64 a6store;
+  uint64 a7store;
+  uint64 t0store;
+  uint64 t1store;
+  uint64 t2store;
+  uint64 t3store;
+  uint64 t4store;
+  uint64 t5store;
+  uint64 t6store;
+  uint64 rastore;
+  uint64 spstore;
+  uint64 gpstore;
+  uint64 tpstore;
+  uint64 s0store;
+  uint64 s1store;
+  uint64 s2store;
+  uint64 s3store;
+  uint64 s4store;
+  uint64 s5store;
+  uint64 s6store;
+  uint64 s7store;
+  uint64 s8store;
+  uint64 s9store;
+  uint64 s10store;
+  uint64 s11store;
+
+
+  //struct trapframe *startpos;
+
+  uint64 sigstate;
   // these are private to the process, so p->lock need not be held.
   uint64 kstack;               // Virtual address of kernel stack
   uint64 sz;                   // Size of process memory (bytes)

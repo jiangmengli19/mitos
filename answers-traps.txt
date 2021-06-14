@@ -1,0 +1,4 @@
+1.The register a0,a1,a2.. contains the argument.a2 holds the 13
+the compile doesn't call f and g
+the printf is located at 0x628
+value in ra is 8 larger

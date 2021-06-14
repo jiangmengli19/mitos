@@ -65,7 +65,7 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if((which_dev = devintr()) != 0){
+  }  else if((which_dev = devintr()) != 0){
     // ok
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
@@ -78,8 +78,75 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)
-    yield();
+  {
 
+      if(p->numhandler != 0) {
+          p->alarmticks = p->alarmticks + 1;
+          if (p->alarmticks >= p->numhandler) {
+              if(p->sigstate == 0) {
+
+
+                  p->rastore = p->trapframe->ra;
+                  //p->s0restore = p->trapframe->s0;
+                  p->epcstore = p->trapframe->epc;
+                  p->a0store = p->trapframe->a0;
+                  p->a1store = p->trapframe->a1;
+                  p->a2store = p->trapframe->a2;
+                  p->a3store = p->trapframe->a3;
+                  p->a4store = p->trapframe->a4;
+                  p->a5store = p->trapframe->a5;
+                  p->a6store = p->trapframe->a6;
+                  p->a7store = p->trapframe->a7;
+                  p->t0store = p->trapframe->t0;
+                  p->t1store = p->trapframe->t1;
+                  p->t2store = p->trapframe->t2;
+                  p->t3store = p->trapframe->t3;
+                  p->t4store = p->trapframe->t4;
+                  p->t5store = p->trapframe->t5;
+                  p->t6store = p->trapframe->t6;
+
+
+
+
+
+
+
+
+                  //p->trapframe->ra = p->rastore;
+                  p->spstore =  p->trapframe->sp ;
+                  p->gpstore = p->trapframe->gp ;
+                  p->tpstore = p->trapframe->tp ;
+                  p->s0store = p->trapframe->s0 ;
+                  p->s1store = p->trapframe->s1 ;
+                  p->s2store = p->trapframe->s2 ;
+                  p->s3store =  p->trapframe->s3 ;
+                  p->s4store = p->trapframe->s4 ;
+                  p->s5store = p->trapframe->s5 ;
+                  p->s6store = p->trapframe->s6 ;
+                  p->s7store = p->trapframe->s7 ;
+                  p->s8store = p->trapframe->s8 ;
+                  p->s9store = p->trapframe->s9 ;
+                  p->s10store = p->trapframe->s10 ;
+                  p->s11store = p->trapframe->s11;
+
+                  //p->startpos = (uint64)p->trapframe;
+                  //p->rastore = p->trapframe->ra;
+
+                  p->trapframe->epc = p->handler;
+                  //printf("currently the epc is %p\n", p->trapframe->epc);
+
+                  p->alarmticks = 0;
+                  p->sigstate = 1;
+              }
+          }
+      }
+
+      yield();
+  }
+
+
+
+  //printf("%p\n",TRAMPOLINE + (uservec - trampoline));
   usertrapret();
 }
 

@@ -126,6 +126,45 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  p->alarmticks = 0;
+  //p->startpos = 0;
+
+  p->numhandler = 0;
+  p->handler = 0;
+
+  p->a0store= 0;
+  p->epcstore = 0;
+  p->a1store = 0;
+  p->a2store = 0;
+  p->a3store = 0;
+  p->a4store = 0;
+  p->a5store = 0;
+  p->a6store = 0;
+  p->a7store = 0;
+  p->t0store = 0;
+  p->t1store = 0;
+  p->t2store = 0;
+  p->t3store = 0;
+  p->t4store = 0;
+  p->t5store = 0;
+  p->t6store = 0;
+  p->rastore = 0;
+  p->spstore = 0;
+  p->gpstore = 0;
+  p->tpstore = 0;
+  p->s0store = 0;
+  p->s1store = 0;
+  p->s2store = 0;
+  p->s3store = 0;
+  p->s4store = 0;
+  p->s5store = 0;
+  p->s6store = 0;
+  p->s7store = 0;
+  p->s8store = 0;
+  p->s9store = 0;
+  p->s10store = 0;
+  p->s11store = 0;
+  p->sigstate = 0;
 
   return p;
 }

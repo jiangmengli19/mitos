@@ -114,6 +114,49 @@ printf(char *fmt, ...)
     release(&pr.lock);
 }
 
+void backtrace(int i , uint64 currentaddress,uint64 pgup){
+    //proc *p = myproc();
+    if(i == 0) {
+        printf("backtrace\n");
+        currentaddress = r_fp();
+        pgup = PGROUNDUP(currentaddress);
+    }
+
+    uint64 addressread =  currentaddress;
+    uint64 addressprevframe = addressread - 16;
+    uint64 addressreturnadd = addressread - 8;
+    //printf("currentaddress,%p\n",currentaddress);
+    if(pgup>currentaddress) {
+        printf("%p\n", *(uint64 *)addressreturnadd);
+        backtrace(i + 1, *(uint64 *)addressprevframe, pgup);
+    }
+    else{
+        return;
+    }
+
+
+}
+
+
+/*
+void backtrace(void)
+{
+    uint64 fp = r_fp();
+    //printf("%p\n",fp);
+    uint64 stop = PGROUNDUP(fp);
+    printf("%p\n",stop);
+    uint64 return_addr;
+    printf("backtrace\n");
+    while(fp<stop)
+    {
+        return_addr = *(uint64 *)(fp-8);
+        fp = *(uint64*)(fp-16);
+        printf("%p\n",return_addr);
+
+    }
+}
+*/
+
 void
 panic(char *s)
 {
