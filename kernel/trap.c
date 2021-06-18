@@ -68,11 +68,43 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
-    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    p->killed = 1;
-  }
+      if (r_scause() == 13 || r_scause() == 15) {
+          //printf("pagefault %p\n", r_stval());
+          uint64 va = r_stval();
 
+          if(va>myproc()->sz){
+              p->killed= 1;
+              exit(-1);
+          }
+          if(va<myproc()->trapframe->sp){
+              p->killed = 1;
+              exit(-1);
+          }
+
+          va = PGROUNDDOWN(va);
+          char *mem;
+          mem = kalloc();
+          if (mem == 0) {
+              printf("cannot allocate memory\n");
+              uvmunmap(myproc()->pagetable, 0,(myproc()->sz)/PGSIZE,1);
+              p->killed = 1;
+              exit(-1);
+          }
+          else {
+              memset(mem, 0, PGSIZE);
+              if (mappages(p->pagetable, va, PGSIZE, (uint64) mem, PTE_W | PTE_U | PTE_R) != 0) {
+                  kfree(mem);
+                  panic(" we cannot do mapping\n");
+              }
+          }
+
+
+      } else {
+          printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+          printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+          p->killed = 1;
+      }
+  }
   if(p->killed)
     exit(-1);
 
@@ -217,4 +249,33 @@ devintr()
     return 0;
   }
 }
+
+/*
+ uint64
+uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
+{
+  char *mem;
+  uint64 a;
+
+  if(newsz < oldsz)
+    return oldsz;
+
+  oldsz = PGROUNDUP(oldsz);
+  for(a = oldsz; a < newsz; a += PGSIZE){
+    mem = kalloc();
+    if(mem == 0){
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
+    }
+    memset(mem, 0, PGSIZE);
+    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
+      kfree(mem);
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
+    }
+  }
+  return newsz;
+
+ *
+ */
 
