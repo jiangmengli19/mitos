@@ -13,12 +13,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f6cbce5c-0569-4322-8714-5be278c1f7a5" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.gdbinit.tmpl-riscv" beforeDir="false" afterPath="$PROJECT_DIR$/.gdbinit.tmpl-riscv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel/proc.c" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/proc.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel/sysproc.c" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/sysproc.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel/trap.c" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/trap.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel/vm.c" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/vm.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user/usertests.c" beforeDir="false" afterPath="$PROJECT_DIR$/user/usertests.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,6 +99,7 @@
       <workItem from="1623766471435" duration="29000" />
       <workItem from="1623766503467" duration="14903000" />
       <workItem from="1623852428464" duration="1213000" />
+      <workItem from="1624001215009" duration="2713000" />
     </task>
     <servers />
   </component>
