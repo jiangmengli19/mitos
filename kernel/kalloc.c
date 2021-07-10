@@ -13,19 +13,30 @@ void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
-
+struct spinlock arraylock;
 struct run {
   struct run *next;
 };
 
+int pagearray[PHYSTOP/PGSIZE];
 struct {
   struct spinlock lock;
   struct run *freelist;
 } kmem;
 
+void recinit(){
+    initlock(&arraylock,"array");
+    acquire(&arraylock);
+    for(int i = 0;i<=PHYSTOP/PGSIZE-1;i++){
+        pagearray[i]=0;
+    }
+    release(&arraylock);
+}
 void
 kinit()
 {
+  recinit();
+  //initlock(&arraylock,"array");
   initlock(&kmem.lock, "kmem");
   freerange(end, (void*)PHYSTOP);
 }
@@ -50,13 +61,24 @@ kfree(void *pa)
 
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
+  acquire(&kmem.lock);
+  acquire(&arraylock);
+  //acquire(&kmem.lock);
+  decrrefcount(pa);
+  int index = getrc(pa);
+  if(pagearray[index]!=0){
+      release(&arraylock);
+      release(&kmem.lock);
+      return;
+  }
+  release(&arraylock);
 
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 
   r = (struct run*)pa;
 
-  acquire(&kmem.lock);
+  //acquire(&kmem.lock);
   r->next = kmem.freelist;
   kmem.freelist = r;
   release(&kmem.lock);
@@ -74,9 +96,46 @@ kalloc(void)
   r = kmem.freelist;
   if(r)
     kmem.freelist = r->next;
-  release(&kmem.lock);
+  //release(&kmem.lock);
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
+  acquire(&arraylock);
+  if(r){
+    int rc = getrc(r);
+    if(rc!=-1){
+        pagearray[rc] = 1;
+    }
+    else{
+        panic("problem in kalloc pageindex");
+    }
+
+  }
+  release(&arraylock);
+  release(&kmem.lock);
   return (void*)r;
+}
+
+int getrc(void *pa){
+    if((char*)pa < end || (uint64)pa >= PHYSTOP){
+        return -1;
+    }
+    int index = (PGROUNDUP((uint64)pa)- PGROUNDUP((uint64)end))/PGSIZE;
+    return index;
+}
+
+void incrrefcount(void *pa){
+    acquire(&arraylock);
+    int rc = getrc(pa);
+    if(rc != -1){
+        pagearray[rc] = pagearray[rc]+1;
+    }
+    release(&arraylock);
+}
+
+void decrrefcount(void *pa){
+    int rc = getrc(pa);
+    if(rc != -1 && pagearray[rc]!=0){
+        pagearray[rc] = pagearray[rc] -1;
+    }
 }
