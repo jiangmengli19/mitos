@@ -6,7 +6,7 @@
 
 static int nthread = 1;
 static int round = 0;
-
+static int finishaccount = 0;
 struct barrier {
   pthread_mutex_t barrier_mutex;
   pthread_cond_t barrier_cond;
@@ -14,11 +14,13 @@ struct barrier {
   int round;     // Barrier round
 } bstate;
 
+
 static void
 barrier_init(void)
 {
   assert(pthread_mutex_init(&bstate.barrier_mutex, NULL) == 0);
   assert(pthread_cond_init(&bstate.barrier_cond, NULL) == 0);
+
   bstate.nthread = 0;
 }
 
@@ -30,7 +32,38 @@ barrier()
   // Block until all threads have called barrier() and
   // then increment bstate.round.
   //
-  
+
+  //bstate.round = bstate.round+1;
+  //int finalflag = 1;
+
+  //int finishaccount = 0;
+  pthread_mutex_lock(&bstate.barrier_mutex);
+
+  bstate.nthread = bstate.nthread+1;
+  if(bstate.nthread<nthread){
+      //finalflag = 0;
+      pthread_cond_wait(&bstate.barrier_cond,&bstate.barrier_mutex);
+  }
+  else{
+
+      bstate.round = bstate.round+1;
+      bstate.nthread = 0;
+      pthread_cond_broadcast(&bstate.barrier_cond);
+  }
+  /*
+  finishaccount = finishaccount + 1;
+  if(finishaccount==bstate.nthread){
+    bstate.nthread=0;
+    finishaccount = 0;
+  }
+   */
+  pthread_mutex_unlock(&bstate.barrier_mutex);
+
+
+
+
+
+
 }
 
 static void *
