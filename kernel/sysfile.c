@@ -115,6 +115,8 @@ sys_fstat(void)
   return filestat(f, st);
 }
 
+
+
 // Create the path new as a link to the same inode as old.
 uint64
 sys_link(void)
@@ -164,7 +166,62 @@ bad:
   end_op();
   return -1;
 }
+/*
+uint64
+sys_symlink(void)
+{
+    char name[DIRSIZ], new[MAXPATH], old[MAXPATH];
+    struct inode *ip, *dp;
+    if(argstr(0, old, MAXPATH) < 0 || argstr(1, new, MAXPATH) < 0)
+    {
+        return -1;
+    }
+    nameiparent("/testsymlink/a",name);
+    printf(" in symlinktest, name is %s\n",name);
 
+
+    begin_op();
+    if((dp=nameiparent(new,name))==0){
+        printf("we have problem in opening initial directory\n");
+        end_op();
+        return -1;
+    }
+    //printf("name in symlink is %s\n",name);
+
+    ilock(dp);
+
+
+    if((ip = ialloc(dp->dev,T_SYMLINK))==0)
+        panic("symlink :ialloc");
+
+    ilock(ip);
+    ip->nlink++;
+    writei(ip,0,(uint64)old,0,MAXPATH);
+    iupdate(ip);
+    iunlock(ip);
+    if(dirlink(dp,name,ip->inum)<0){
+        printf("we have problem in linking\n");
+        iunlockput(dp);
+        goto bad;
+    }
+    iunlockput(dp);
+    iput(ip);
+    end_op();
+    return 0;
+
+
+bad:
+    ilock(ip);
+    ip->nlink--;
+    iupdate(ip);
+    iunlockput(ip);
+    end_op();
+    return -1;
+
+   //return 0;
+
+}
+*/
 // Is the directory dp empty except for "." and ".." ?
 static int
 isdirempty(struct inode *dp)
@@ -185,15 +242,20 @@ uint64
 sys_unlink(void)
 {
   struct inode *ip, *dp;
+  //char test[MAXPATH];
   struct dirent de;
   char name[DIRSIZ], path[MAXPATH];
   uint off;
 
   if(argstr(0, path, MAXPATH) < 0)
     return -1;
+  //strncpy(test,path,MAXPATH);
 
+  //nameiparent("/testsymlink/g",name);
+  //printf("test is %s\n",name);
   begin_op();
   if((dp = nameiparent(path, name)) == 0){
+    //printf("name in unlink is %s\n",name);
     end_op();
     return -1;
   }
@@ -238,6 +300,58 @@ bad:
   return -1;
 }
 
+uint64
+sys_symlink(void)
+{
+    char name[DIRSIZ], new[MAXPATH], old[MAXPATH];
+    struct inode *ip, *dp;
+    if(argstr(0, old, MAXPATH) < 0 || argstr(1, new, MAXPATH) < 0)
+    {
+        return -1;
+    }
+    //printf("old is %s\n",old);
+    //printf("new is %s\n",new);
+    begin_op();
+    if((dp=nameiparent(new,name))==0){
+        printf("we have problem in opening initial directory\n");
+        end_op();
+        return -1;
+    }
+    //printf("name in symlink is %s\n",name);
+
+    ilock(dp);
+
+
+    if((ip = ialloc(dp->dev,T_SYMLINK))==0)
+        panic("symlink :ialloc");
+
+    ilock(ip);
+    ip->nlink++;
+    writei(ip,0,(uint64)old,0,MAXPATH);
+    iupdate(ip);
+    iunlock(ip);
+    if(dirlink(dp,name,ip->inum)<0){
+        printf("we have problem in linking\n");
+        iunlockput(dp);
+        goto bad;
+    }
+    iunlockput(dp);
+    iput(ip);
+    end_op();
+    return 0;
+
+
+    bad:
+    ilock(ip);
+    ip->nlink--;
+    iupdate(ip);
+    iunlockput(ip);
+    end_op();
+    return -1;
+
+    //return 0;
+
+}
 static struct inode*
 create(char *path, short type, short major, short minor)
 {
@@ -282,15 +396,29 @@ create(char *path, short type, short major, short minor)
 
   return ip;
 }
+/*
+uint64 sys_symlink(void)
+{
+    char name[DIRSIZ], new[MAXPATH], old[MAXPATH];
+    struct inode *dp,*ip;
+    if(argstr(0, old, MAXPATH) < 0 || argstr(1, new, MAXPATH) < 0)
+        return -1;
+    begin_op();
 
+
+}
+*/
 uint64
 sys_open(void)
 {
   char path[MAXPATH];
-  int fd, omode;
-  struct file *f;
+  int fd, omode,fd1;
+  struct file *f,*f1;
   struct inode *ip;
   int n;
+  char new[MAXPATH];
+
+  char softStore[10][MAXPATH];
 
   if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
     return -1;
@@ -322,6 +450,7 @@ sys_open(void)
     return -1;
   }
 
+
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -344,11 +473,154 @@ sys_open(void)
   if((omode & O_TRUNC) && ip->type == T_FILE){
     itrunc(ip);
   }
+  if((omode&O_NOFOLLOW)&&(ip->type == T_SYMLINK)){
+      iunlock(ip);
+      end_op();
+      return fd;
+  }
+  if((omode&(~O_NOFOLLOW))&&(ip->type == T_SYMLINK)){
+      if(readi(ip,0,(uint64)new,0,MAXPATH)!=MAXPATH){
+          printf("we cannot copyout MAXPATH counts\n");
+          iunlockput(ip);
+          end_op();
+          return -1;
+      }
+      printf("the new path is %s\n",new);
+      if((f1=filealloc())==0||(fd1=fdalloc(f1))<0){
+          if(f1)
+              fileclose(f1);
+          iunlockput(ip);
+          printf("have problem in second allocation\n");
+          end_op();
+          return -1;
+      }
+      iunlock(ip);
+      fileclose(f);
+
+
+
+      struct proc *p = myproc();
+      p->ofile[fd] = 0;
+
+      if((ip = namei(new))==0){
+          printf("we have the problem in finding the new ip\n");
+          end_op();
+          return -1;
+
+      }
+      ilock(ip);
+      if(ip->type == T_DEVICE){
+          f1->type = FD_DEVICE;
+          f1->major = ip->major;
+      } else {
+          f1->type = FD_INODE;
+          f1->off = 0;
+      }
+      f1->ip = ip;
+      f1->readable = !(omode & O_WRONLY);
+      f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+      if(ip->type == T_SYMLINK){
+          printf("we open a file which is a softlink file\n");
+          printf("we set the limit of opening softlink file to 10\n");
+          for(int j=0;j<10;j++){
+              strncpy(softStore[j],new,MAXPATH);
+              if(readi(ip,0,(uint64)new,0,MAXPATH)!=MAXPATH){
+                  printf("we cannot copyout MAXPATH counts in softlinks\n");
+                  goto bad;
+              }
+              for(int k = 0;k<=j;k++){
+                  if(strncmp(softStore[k],new,MAXPATH)==0){
+                      printf("we cannot open softlinks in loop\n");
+                      goto bad;
+                  }
+              }
+              iunlock(ip);
+
+              fileclose(f1);
+              p->ofile[fd1] = 0;
+
+              if((ip = namei(new))==0){
+                  printf("we have the problem in finding the new ip\n");
+                  /*
+                  fileclose(f1);
+                  p->ofile[fd1]=0;
+                   */
+                  end_op();
+                  return -1;
+
+              }
+              ilock(ip);
+
+              if((f1=filealloc())==0||(fd1=fdalloc(f1))<0){
+                  if(f1)
+                      fileclose(f1);
+                  iunlockput(ip);
+                  printf("have problem in allocation in loop\n");
+                  end_op();
+                  return -1;
+              }
+
+
+              if(ip->type == T_SYMLINK){
+                  f1->type = FD_INODE;
+                  f1->off = 0;
+                  f1->ip = ip;
+                  f1->readable = !(omode & O_WRONLY);
+                  f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+                  continue;
+              }
+              if(ip->type == T_DIR){
+                  printf("we meet the problem that softlink point to directories\n");
+                  goto bad;
+
+              }
+              if(ip->type == T_FILE || ip->type == T_DEVICE){
+
+                  if(ip->type == T_DEVICE){
+                      f1->type = FD_DEVICE;
+                      f1->major = ip->major;
+                  } else {
+                      f1->type = FD_INODE;
+                      f1->off = 0;
+                  }
+                  f1->ip = ip;
+                  f1->readable = !(omode & O_WRONLY);
+                  f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+                  break;
+              }
+          }
+      }
+      else{
+          printf("ip type is %d\n",ip->type);
+      }
+      iunlock(ip);
+      end_op();
+      return fd1;
+
+
+
+  }
+  if((omode & O_NOFOLLOW)&&ip->type != T_SYMLINK){
+      printf("we meet problem not opening the correct symlink\n");
+      iunlockput(ip);
+      end_op();
+      return -1;
+  }
 
   iunlock(ip);
   end_op();
 
   return fd;
+
+bad:
+    iunlock(ip);
+    fileclose(f1);
+    struct proc *p = myproc();
+    p->ofile[fd1] = 0;
+    end_op();
+    return -1;
+
 }
 
 uint64

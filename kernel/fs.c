@@ -316,8 +316,16 @@ ilock(struct inode *ip)
 void
 iunlock(struct inode *ip)
 {
-  if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1)
-    panic("iunlock");
+  if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1){
+      if(ip->ref<1){
+          printf("we come to here because ref<1\n");
+      }
+      if(ip == 0){
+          printf("we come to here because ip==0\n");
+      }
+      panic("iunlock");
+  }
+
 
   releasesleep(&ip->lock);
 }
@@ -374,6 +382,7 @@ iunlockput(struct inode *ip)
 
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
+/*
 static uint
 bmap(struct inode *ip, uint bn)
 {
@@ -403,9 +412,128 @@ bmap(struct inode *ip, uint bn)
 
   panic("bmap: out of range");
 }
+*/
 
+static uint
+bmap(struct inode *ip, uint bn){
+    uint addr,*a;
+    uint firstphaseSize;
+    uint secondphaseSize;
+    struct buf *bp;
+    //struct buf *bp2;
+    if(bn < NDIRECT){
+        if((addr = ip->addrs[bn])==0)
+            ip->addrs[bn] = addr = balloc(ip->dev);
+        return addr;
+    }
+
+    if(( bn>=NDIRECT)&&(bn <NDIRECT + SINGLYBNUM)){
+
+
+     bn = bn - NDIRECT;
+     /*
+     if(bn<NINDIRECT){
+         if(bn<SINGLYBNUM){
+         */
+        if((addr = ip->addrs[NDIRECT])==0){
+            ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+        }
+        bp = bread(ip->dev,addr);
+        a = (uint*)bp->data;
+        if((addr = a[bn])==0){
+            a[bn] = addr = balloc(ip->dev);
+            log_write(bp);
+        }
+        brelse(bp);
+        return addr;
+
+    }
+    else if((bn>=NDIRECT+SINGLYBNUM)&&(bn < MAXFILE)){
+
+
+       bn = bn -NDIRECT-SINGLYBNUM;
+       firstphaseSize = bn/SINGLYBNUM;
+       secondphaseSize = bn%SINGLYBNUM;
+       if((addr = ip->addrs[NDIRECT+1])==0){
+           ip->addrs[NDIRECT+1] = addr = balloc(ip->dev);
+       }
+       bp = bread(ip->dev,addr);
+       a = (uint*)bp->data;
+       if((addr = a[firstphaseSize])==0){
+           a[firstphaseSize] = addr = balloc(ip->dev);
+           log_write(bp);
+
+       }
+
+       brelse(bp);
+       bp = bread(ip->dev,addr);
+       a = (uint*)bp->data;
+       if((addr = a[secondphaseSize])==0){
+           a[secondphaseSize] = addr = balloc(ip->dev);
+           log_write(bp);
+       }
+       brelse(bp);
+       return addr;
+       //return addr;
+
+    }
+    panic("bmap:out of range");
+
+}
+
+/*
+static uint
+bmap(struct inode *ip, uint bn)
+{
+    uint addr, *a;
+    struct buf *bp;
+    if(bn < NDIRECT){
+        if((addr = ip->addrs[bn]) == 0)
+            ip->addrs[bn] = addr = balloc(ip->dev);
+        return addr;
+    }
+    bn -= NDIRECT;
+    if(bn < NINDIRECT){
+        // bn block is in singly-indirect blocks
+        if (bn < SINGLYBNUM) {
+            // Load indirect block, allocating if necessary.
+            if((addr = ip->addrs[NDIRECT]) == 0)
+                ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+            bp = bread(ip->dev, addr);
+            a = (uint*)bp->data;
+            if((addr = a[bn]) == 0){
+                a[bn] = addr = balloc(ip->dev);
+                log_write(bp);
+            }
+            brelse(bp);
+            return addr;
+        }
+        // bn block is in doubly-indirect blocks
+        bn -= SINGLYBNUM;
+        if ((addr = ip->addrs[NDIRECT+1]) == 0)
+            ip->addrs[NDIRECT+1] = addr = balloc(ip->dev);
+        bp = bread(ip->dev, addr);
+        a = (uint*)bp->data;
+        if ((addr = a[bn/SINGLYBNUM]) == 0) {
+            a[bn/SINGLYBNUM] = addr = balloc(ip->dev);
+            log_write(bp);
+        }
+        brelse(bp);
+        bp = bread(ip->dev,addr);
+        a = (uint*)bp->data;
+        if ((addr = a[bn%SINGLYBNUM]) == 0) {
+            a[bn%SINGLYBNUM] = addr = balloc(ip->dev);
+            log_write(bp);
+        }
+        brelse(bp);
+        return addr;
+    }
+    panic("bmap: out of range");
+}
+*/
 // Truncate inode (discard contents).
 // Caller must hold ip->lock.
+/*
 void
 itrunc(struct inode *ip)
 {
@@ -435,7 +563,55 @@ itrunc(struct inode *ip)
   ip->size = 0;
   iupdate(ip);
 }
+*/
+void
+itrunc(struct inode *ip){
+    int i,j,k,l;
+    struct buf *bp;
+    struct buf *bp2;
+    uint *a,*b;
+    for(i=0;i<NDIRECT;i++){
+        if(ip->addrs[i]){
+            bfree(ip->dev,ip->addrs[i]);
+            ip->addrs[i] = 0;
+        }
+    }
+    if(ip->addrs[NDIRECT]){
+        bp = bread(ip->dev,ip->addrs[NDIRECT]);
+        a = (uint*)bp->data;
+        for(j = 0;j<SINGLYBNUM;j++){
+            if(a[j]){
+                bfree(ip->dev,a[j]);
+            }
+        }
+        brelse(bp);
+        bfree(ip->dev,ip->addrs[NDIRECT]);
+        ip->addrs[NDIRECT] = 0;
+    }
+    if(ip->addrs[NDIRECT+1]){
+        bp = bread(ip->dev,ip->addrs[NDIRECT+1]);
+        a = (uint*)bp->data;
+        for(k = 0;k<SINGLYBNUM;k++){
+            if(a[k]){
+                bp2 = bread(ip->dev,a[k]);
+                b = (uint*)bp2->data;
+                for(l = 0;l<SINGLYBNUM;l++){
+                    if(b[l]){
+                        bfree(ip->dev,b[l]);
+                    }
+                }
+                brelse(bp2);
+                bfree(ip->dev,a[k]);
 
+            }
+        }
+        brelse(bp);
+        bfree(ip->dev,ip->addrs[NDIRECT+1]);
+        ip->addrs[NDIRECT+1]=0;
+    }
+    ip->size = 0;
+    iupdate(ip);
+}
 // Copy stat information from inode.
 // Caller must hold ip->lock.
 void
@@ -562,6 +738,8 @@ dirlink(struct inode *dp, char *name, uint inum)
 
   // Check that name is not present.
   if((ip = dirlookup(dp, name, 0)) != 0){
+    printf("name is %s\n",name);
+    printf("we find the name in directory lookup\n");
     iput(ip);
     return -1;
   }
@@ -629,20 +807,29 @@ static struct inode*
 namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
-
+  //printf("path is %s\n",path);
+  //printf("length of path is %d\n",strlen(path));
   if(*path == '/')
     ip = iget(ROOTDEV, ROOTINO);
   else
     ip = idup(myproc()->cwd);
 
   while((path = skipelem(path, name)) != 0){
+    //printf("in first loop path is %s\n",path);
+    //printf("in first loop name is %s\n",name);
+    //printf("result of equal is %d\n",path==0);
+    //printf("in first loop length of path is %d\n",strlen(path));
     ilock(ip);
     if(ip->type != T_DIR){
       iunlockput(ip);
       return 0;
     }
+    //printf("path is %s\n",path);
+    //printf("name is %s\n",name);
     if(nameiparent && *path == '\0'){
       // Stop one level early.
+      //printf("name in namex is %s\n",name);
+      //printf("path in namex is %s\n",path);
       iunlock(ip);
       return ip;
     }
@@ -650,6 +837,7 @@ namex(char *path, int nameiparent, char *name)
       iunlockput(ip);
       return 0;
     }
+    //printf("in firstloop we come to here\n");
     iunlockput(ip);
     ip = next;
   }
