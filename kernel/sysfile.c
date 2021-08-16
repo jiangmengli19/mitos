@@ -535,22 +535,22 @@ sys_open(void)
                   }
               }
               iunlock(ip);
-
+              /*
               fileclose(f1);
               p->ofile[fd1] = 0;
-
+              */
               if((ip = namei(new))==0){
                   printf("we have the problem in finding the new ip\n");
-                  /*
+
                   fileclose(f1);
                   p->ofile[fd1]=0;
-                   */
+
                   end_op();
                   return -1;
 
               }
               ilock(ip);
-
+              /*
               if((f1=filealloc())==0||(fd1=fdalloc(f1))<0){
                   if(f1)
                       fileclose(f1);
@@ -559,14 +559,14 @@ sys_open(void)
                   end_op();
                   return -1;
               }
-
+              */
 
               if(ip->type == T_SYMLINK){
-                  f1->type = FD_INODE;
-                  f1->off = 0;
+                  //f1->type = FD_INODE;
+                  //f1->off = 0;
                   f1->ip = ip;
-                  f1->readable = !(omode & O_WRONLY);
-                  f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+                  //f1->readable = !(omode & O_WRONLY);
+                  //f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
                   continue;
               }
               if(ip->type == T_DIR){
@@ -575,7 +575,7 @@ sys_open(void)
 
               }
               if(ip->type == T_FILE || ip->type == T_DEVICE){
-
+                  /*
                   if(ip->type == T_DEVICE){
                       f1->type = FD_DEVICE;
                       f1->major = ip->major;
@@ -583,9 +583,10 @@ sys_open(void)
                       f1->type = FD_INODE;
                       f1->off = 0;
                   }
+                   */
                   f1->ip = ip;
-                  f1->readable = !(omode & O_WRONLY);
-                  f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+                  //f1->readable = !(omode & O_WRONLY);
+                  //f1->writable = (omode & O_WRONLY) || (omode & O_RDWR);
 
                   break;
               }
